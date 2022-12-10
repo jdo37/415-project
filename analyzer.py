@@ -1,7 +1,7 @@
 import PySimpleGUI as sg
 from neo4j import GraphDatabase
 import logging
-from neo4j.exceptions import ServiceUnavailable
+from neo4j.exceptions import ServiceUnavailable, ClientError
 import math
 import time
 
@@ -329,11 +329,22 @@ def get_lengths(query):
 def limit(list, k):
     return list[:k]
 
+def degree_stat(nodes):
+    mapped = map((lambda x: x[7]), nodes)
+    total = sum(list(mapped))
+    avg = total / len(nodes)
+    max = nodes[0][7]
+    min = nodes[-1][7]
+    return [["Max Degree", max], ["Min Degree", min], ["Average", avg]]
+
 
 query = Query(uri, user, password)
 
 #only need to run once when database is opened
-query.create_graph_projection()
+try:
+    query.create_graph_projection()
+except:
+    print("Graph Projection already created")
 
 headings = ["ID", "Category", "Length", "Views", "Rate", "Age", "Rank", "Degree"]
 button_menu = ['Select', ['Category', [categories_buttons], 'Length', 'Views', 'Rates', 'Age']]
@@ -375,6 +386,7 @@ while True:
         window["-TABLE-"].update(result)
     elif event == "Degree":
         result = query.find_degree_centrality()
+        window["-FILE LIST-"].update(degree_stat(result))
         if video_limit != "All":
                 result = limit(result, int(video_limit))
         window["-TABLE-"].update(result)
